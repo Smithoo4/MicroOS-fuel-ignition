@@ -1,0 +1,22 @@
+# MicroOS Configuration Variables
+# Rename this file to vars.yml and fill in your details
+
+# User Settings
+user_name: "username"
+# Generate with: openssl passwd -6
+user_passwordHash: "$6$..." 
+user_ssh_authorized_keys:
+  - "ssh-ed25519 AAAAC3Nza... user@host"
+
+# System Settings
+hostname: "hostname"
+keymap: "us"
+timezone: "America/Edmonton"
+
+# Git Configuration
+git_config_raw: |
+  [user]
+      name = Your Name
+      email = your.email@example.com
+  [init]
+      defaultBranch = main

@@ -1,0 +1,64 @@
+{
+  "ignition": {
+    "version": "3.4.0"
+  },
+  "passwd": {
+    "users": [
+      {
+        "name": "root",
+        "locked": true
+      },
+      {
+        "name": "{{ user_name }}",
+        "passwordHash": "{{ user_passwordHash }}",
+        "groups": [
+          "wheel"
+        ],
+        "sshAuthorizedKeys": {{ user_ssh_authorized_keys | tojson }}
+      }
+    ],
+    "groups": [
+      {
+        "name": "wheel"
+      }
+    ]
+  },
+  "storage": {
+    "filesystems": [
+      {
+        "device": "/dev/disk/by-label/ROOT",
+        "format": "btrfs",
+        "mountOptions": [
+          "subvol=/@/home"
+        ],
+        "path": "/home",
+        "wipeFilesystem": false
+      }
+    ],
+    "files": [
+      {
+        "path": "/etc/hostname",
+        "mode": 420,
+        "overwrite": true,
+        "contents": {
+          "source": "data:text/plain;charset=utf-8,{{ hostname }}"
+        }
+      },
+      {
+        "path": "/etc/locale.conf",
+        "mode": 420,
+        "overwrite": true,
+        "contents": {
+          "source": "data:text/plain;charset=utf-8;base64,TEFORz1lbl9VUy5VVEYtOAo="
+        }
+      },
+      {
+        "path": "/etc/sudoers.d/wheel",
+        "mode": 288,
+        "contents": {
+          "source": "data:,%25wheel%20ALL%3D(ALL)%20ALL%0ADefaults%20!targetpw%0A"
+        }
+      }
+    ]
+  }
+}

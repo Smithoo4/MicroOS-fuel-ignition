@@ -1,0 +1,9 @@
+# Local plain-text secrets
+vars.yml
+
+# Build artifacts
+output/
+ignition.iso
+
+# Python cache
+__pycache__/

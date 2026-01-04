@@ -1,0 +1,65 @@
+#!/bin/bash
+# combustion: network
+
+# Redirect output to the console
+exec > >(exec tee -a /dev/tty0) 2>&1
+
+# Keyboard
+systemd-firstboot --force --keymap={{ keymap }}
+
+# Timezone
+systemd-firstboot --force --timezone={{ timezone }}
+
+# Software and servies Setup
+zypper --non-interactive dup
+zypper --non-interactive install bash-completion nano git-core firewalld patterns-microos-cockpit
+
+cat <<EOF > /etc/firewalld/zones/public.xml
+<?xml version="1.0" encoding="utf-8"?>
+<zone>
+  <short>Public</short>
+  <description>For use in public areas.</description>
+  <service name="ssh"/>
+  <service name="cockpit"/>
+  <service name="dhcpv6-client"/>
+  <service name="http"/>
+  <service name="https"/>
+</zone>
+EOF
+chown root:root /etc/firewalld/zones/public.xml
+chmod 640 /etc/firewalld/zones/public.xml
+
+systemctl enable firewalld
+systemctl enable cockpit.socket
+
+#Ensure /home subvolume is mounted for persistence
+mount /home || true
+
+# Git configuration for {{ user_name }} user
+cat <<EOF >  /home/{{ user_name }}/.gitconfig
+{{ git_config_raw.strip() }}
+EOF
+
+# Generate SSH key for {{ user_name }} user
+if [ ! -f /home/{{ user_name }}/.ssh/id_ed25519 ]; then
+    ssh-keygen -t ed25519 -C "{{ user_name }}@{{ hostname }}" -f /home/{{ user_name }}/.ssh/id_ed25519 -N ""
+fi
+
+# Set up Rootless Podman
+loginctl enable-linger {{ user_name }}
+su - {{ user_name }} -c "systemctl --user enable podman-auto-update.timer"
+mkdir -p /home/{{ user_name }}/.config/containers/systemd
+echo "net.ipv4.ip_unprivileged_port_start=80" > /etc/sysctl.d/90-rootless-ports.conf
+
+# Set ownership and strict permissions
+chown -R {{ user_name }}:{{ user_name }} /home/{{ user_name }}
+chmod 700 /home/{{ user_name }}/.ssh
+chmod 600 /home/{{ user_name }}/.ssh/id_ed25519
+chmod 644 /home/{{ user_name }}/.ssh/id_ed25519.pub
+
+# Leave a marker
+echo "Configured with combustion" > /etc/issue.d/85-combustion.conf
+echo "Configured with combustion" > /etc/issue.d/85-combustion.issue
+
+# Close outputs and wait for tee to finish.
+exec 1>&- 2>&-; wait;
