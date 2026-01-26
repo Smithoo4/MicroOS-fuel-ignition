@@ -48,6 +48,7 @@ fi
 # Set up Rootless Podman
 loginctl enable-linger {{ user_name }}
 su - {{ user_name }} -c "systemctl --user enable podman-auto-update.timer"
+su - {{ user_name }} -c "systemctl --user enable podman.socket"
 mkdir -p /home/{{ user_name }}/.config/containers/systemd
 echo "net.ipv4.ip_unprivileged_port_start=80" > /etc/sysctl.d/90-rootless-ports.conf
 
