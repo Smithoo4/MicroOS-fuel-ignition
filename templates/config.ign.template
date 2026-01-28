@@ -58,6 +58,13 @@
         "contents": {
           "source": "data:,%25wheel%20ALL%3D(ALL)%20ALL%0ADefaults%20!targetpw%0A"
         }
+      },
+      {
+        "path": "/var/lib/systemd/linger/{{ user_name }}",
+        "mode": 420,
+        "contents": {
+          "source": "data:text/plain;base64,"
+        }
       }
     ]
   }

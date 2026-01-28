@@ -46,7 +46,6 @@ if [ ! -f /home/{{ user_name }}/.ssh/id_ed25519 ]; then
 fi
 
 # Set up Rootless Podman
-loginctl enable-linger {{ user_name }}
 su - {{ user_name }} -c "systemctl --user enable podman-auto-update.timer"
 su - {{ user_name }} -c "systemctl --user enable podman.socket"
 mkdir -p /home/{{ user_name }}/.config/containers/systemd

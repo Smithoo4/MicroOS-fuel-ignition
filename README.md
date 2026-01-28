@@ -137,3 +137,10 @@ To ensure the Combustion script can modify a non-root user's home directory, you
 
 If this step is omitted, any changes made to the home directory will disappear upon login. This happens because the `/home` subvolume is not mounted by default when the Combustion script executes. Without the mount command, the script writes changes directly to the root filesystem; these files are then obscured when the actual home subvolume is mounted during the boot process.
 
+### loginctl limitations
+
+- Simply running `loginctl enable-linger <user>` in a first-boot/Combustion script did **not** reliably enable lingering because the systemd user manager isn’t yet initialized at that stage.
+- On MicroOS, lingering is controlled by the presence of a file in `/var/lib/systemd/linger/<user>` — Ignition runs *before* logind starts, so placing that file in the Ignition config ensures `Linger=yes` is applied on first boot.  
+- Moving the linger file creation into `config.ign` (rather than a post-boot script) is required to guarantee the user’s systemd user services (e.g., rootless Podman timers) run at boot.
+
+
