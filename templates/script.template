@@ -12,7 +12,7 @@ systemd-firstboot --force --timezone={{ timezone }}
 
 # Software and servies Setup
 zypper --non-interactive dup
-zypper --non-interactive install bash-completion nano git-core firewalld patterns-microos-cockpit
+zypper --non-interactive install bash-completion nano git-core sops firewalld patterns-microos-cockpit
 
 cat <<EOF > /etc/firewalld/zones/public.xml
 <?xml version="1.0" encoding="utf-8"?>
