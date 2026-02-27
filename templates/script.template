@@ -24,6 +24,7 @@ cat <<EOF > /etc/firewalld/zones/public.xml
   <service name="dhcpv6-client"/>
   <service name="http"/>
   <service name="https"/>
+  <service name="http3"/>
 </zone>
 EOF
 chown root:root /etc/firewalld/zones/public.xml
