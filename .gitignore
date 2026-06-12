@@ -1,6 +1,3 @@
-# Local plain-text secrets
-vars.yml
-
 # Build artifacts
 output/
 ignition.iso
