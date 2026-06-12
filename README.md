@@ -55,7 +55,7 @@ Ensure you have the following installed on your host system:
 
    You can safely commit `vars.yml` to Git — values are encrypted.
 
-2. Edit `vars.yml` with your specific details (SSH keys, username, etc.).
+3. Edit `vars.yml` with your specific details (SSH keys, username, etc.).
 
    ```bash
    sops vars.yml
