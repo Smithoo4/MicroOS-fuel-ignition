@@ -1,7 +1,6 @@
 ===== build.py =====
 import os
 import subprocess
-import sys
 
 import yaml
 from jinja2 import Environment, FileSystemLoader
@@ -229,7 +228,7 @@ If this step is omitted, any changes made to the home directory will disappear u
 
 ===== .sops.yaml =====
 creation_rules:
-  - path_regex: '\.yml$'
+  - path_regex: '^vars\.yml$'
     age: "age1v492u0esm92zy34e33xd9m7z4jt3v03j233ar75k5m7s0rlxes0sxadr2t"
 
 ===== templates/config.ign.template =====
