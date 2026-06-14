@@ -10,10 +10,18 @@ systemd-firstboot --force --keymap={{ keymap }}
 # Timezone
 systemd-firstboot --force --timezone={{ timezone }}
 
-# Software and servies Setup
-zypper --non-interactive dup
-zypper --non-interactive install bash-completion nano git-core firewalld patterns-microos-cockpit cockpit-selinux
+# Base Software Setup
+zypper --non-interactive install bash-completion nano git-core firewalld age sops
 
+# Cockpit Setup
+zypper --non-interactive install patterns-microos-cockpit cockpit-selinux
+systemctl enable cockpit.socket
+
+# Monitoring - node_exporter
+zypper --non-interactive install golang-github-prometheus-node_exporter
+systemctl enable prometheus-node_exporter
+
+# Firewall Setup
 cat <<EOF > /etc/firewalld/zones/public.xml
 <?xml version="1.0" encoding="utf-8"?>
 <zone>
@@ -31,7 +39,6 @@ chown root:root /etc/firewalld/zones/public.xml
 chmod 640 /etc/firewalld/zones/public.xml
 
 systemctl enable firewalld
-systemctl enable cockpit.socket
 
 #Ensure /home subvolume is mounted for persistence
 mount /home || true
@@ -46,6 +53,13 @@ if [ ! -f /home/{{ user_name }}/.ssh/id_ed25519 ]; then
     ssh-keygen -t ed25519 -C "{{ user_name }}@{{ hostname }}" -f /home/{{ user_name }}/.ssh/id_ed25519 -N ""
 fi
 
+# Generate age key for {{ user_name }} user (used by SOPS)
+AGE_KEY_DIR="/home/{{ user_name }}/.config/sops/age"
+if [ ! -f "${AGE_KEY_DIR}/keys.txt" ]; then
+    mkdir -p "${AGE_KEY_DIR}"
+    age-keygen -o "${AGE_KEY_DIR}/keys.txt" 2>/dev/null
+fi
+
 # Set up Rootless Podman
 su - {{ user_name }} -c "systemctl --user enable podman-auto-update.timer"
 su - {{ user_name }} -c "systemctl --user enable podman.socket"
@@ -56,9 +70,9 @@ chown -R {{ user_name }}:{{ user_name }} /home/{{ user_name }}
 chmod 700 /home/{{ user_name }}/.ssh
 chmod 600 /home/{{ user_name }}/.ssh/id_ed25519
 chmod 644 /home/{{ user_name }}/.ssh/id_ed25519.pub
+chmod 600 /home/{{ user_name }}/.config/sops/age/keys.txt
 
 # Leave a marker
-echo "Configured with combustion" > /etc/issue.d/85-combustion.conf
 echo "Configured with combustion" > /etc/issue.d/85-combustion.issue
 
 # Close outputs and wait for tee to finish.

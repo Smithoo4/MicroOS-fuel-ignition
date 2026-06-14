@@ -106,10 +106,13 @@ This project automates the creation of a configuration ISO that performs the fol
 - Creates the /home subvolume needed for the non-root user.
 - Sets the hostname, keymap, and timezone.
 - Configures sudo to use the wheel group and user passwords.
-- Installs bash-completion, nano, git-core, firewalld, and patterns-microos-cockpit.
+- Installs bash-completion, nano, git-core, firewalld, age, and sops.
+- Installs and enables patterns-microos-cockpit.
+- Installs and enables prometheus node_exporter for OS metrics.
 - Opens firewall ports for SSH, Cockpit, HTTP, and HTTPS.
 - Configures git for the non-root user (.gitconfig).
 - Generates an SSH key for the non-root user.
+- Generates an age key for the non-root user (used by SOPS for decrypting secrets).
 - Enables linger for rootless Podman and the podman-auto-update.timer.
 - Sets unprivileged ports to start at 80 (needed for HTTP and HTTPS).
 
@@ -317,10 +320,18 @@ systemd-firstboot --force --keymap={{ keymap }}
 # Timezone
 systemd-firstboot --force --timezone={{ timezone }}
 
-# Software and servies Setup
-zypper --non-interactive dup
-zypper --non-interactive install bash-completion nano git-core firewalld patterns-microos-cockpit cockpit-selinux
+# Base Software Setup
+zypper --non-interactive install bash-completion nano git-core firewalld age sops
 
+# Cockpit Setup
+zypper --non-interactive install patterns-microos-cockpit cockpit-selinux
+systemctl enable cockpit.socket
+
+# Monitoring - node_exporter
+zypper --non-interactive install golang-github-prometheus-node_exporter
+systemctl enable prometheus-node_exporter
+
+# Firewall Setup
 cat <<EOF > /etc/firewalld/zones/public.xml
 <?xml version="1.0" encoding="utf-8"?>
 <zone>
@@ -338,7 +349,6 @@ chown root:root /etc/firewalld/zones/public.xml
 chmod 640 /etc/firewalld/zones/public.xml
 
 systemctl enable firewalld
-systemctl enable cockpit.socket
 
 #Ensure /home subvolume is mounted for persistence
 mount /home || true
@@ -353,6 +363,13 @@ if [ ! -f /home/{{ user_name }}/.ssh/id_ed25519 ]; then
     ssh-keygen -t ed25519 -C "{{ user_name }}@{{ hostname }}" -f /home/{{ user_name }}/.ssh/id_ed25519 -N ""
 fi
 
+# Generate age key for {{ user_name }} user (used by SOPS)
+AGE_KEY_DIR="/home/{{ user_name }}/.config/sops/age"
+if [ ! -f "${AGE_KEY_DIR}/keys.txt" ]; then
+    mkdir -p "${AGE_KEY_DIR}"
+    age-keygen -o "${AGE_KEY_DIR}/keys.txt" 2>/dev/null
+fi
+
 # Set up Rootless Podman
 su - {{ user_name }} -c "systemctl --user enable podman-auto-update.timer"
 su - {{ user_name }} -c "systemctl --user enable podman.socket"
@@ -363,20 +380,20 @@ chown -R {{ user_name }}:{{ user_name }} /home/{{ user_name }}
 chmod 700 /home/{{ user_name }}/.ssh
 chmod 600 /home/{{ user_name }}/.ssh/id_ed25519
 chmod 644 /home/{{ user_name }}/.ssh/id_ed25519.pub
+chmod 600 /home/{{ user_name }}/.config/sops/age/keys.txt
 
 # Leave a marker
-echo "Configured with combustion" > /etc/issue.d/85-combustion.conf
 echo "Configured with combustion" > /etc/issue.d/85-combustion.issue
 
 # Close outputs and wait for tee to finish.
 exec 1>&- 2>&-; wait;
 
 ===== vars.yml =====
-user_name: ENC[AES256_GCM,data:VOxuU4TQ,iv:U3ajjrET0FMIO77QZ1J4qWTYdL3tS1HaGl0EruSBEO4=,tag:1RIMFjJyCOI0QN6iyIoSCg==,type:str]
+user_name: ENC[AES256_GCM,data:7Ock6YYy0oA=,iv:SID0skUupxzxmDzGswNEnSqIUntMFutp2Quf/j9dGYc=,tag:qKvDTQlqhU/7giIVWKC8Gg==,type:str]
 user_passwordHash: ENC[AES256_GCM,data:NSm7igVvIgj8iD+j98B97Qbus6/KZOUGqZi4ZggWrYtTGuAy0FkNaJ38Ky6rlRT9td5dsHJtwWqwROT6bf/7iC6UUa/+1ZFTomaZPGz44CUKU8up1qFrl9cOMmOXwVAc+Rt346R0Zpnmow==,iv:FNc4t2GktvCcBt/UWTlThxlmnuUwaCCwnwShnCHrmIU=,tag:WC/A5CQx4CaQTbtkEOZn0w==,type:str]
 user_ssh_authorized_keys:
     - ENC[AES256_GCM,data:kmYNFNP7nwKx/ra/8Ge+wa3gbjFGKDUkmhLeGYFYDnW/w/6ZvkplxwOYuWORyj4AD5X8eyTKXpDCb2tk4d+nVcnvWFLwad0ZaJ2TOBNT94f4MFjYZUNUV/6/fXwAHQ==,iv:u4emfGvYl0WHf6qtTXRyLo0Fr26Mn7DbbPBkuESXNDA=,tag:SU2Y8wUFbm7yCiNkg0YmHg==,type:str]
-    - ENC[AES256_GCM,data:gT8L/dEFkyl64l9SAy26A1evWTR/WlVvILBSsmd/X6qUSx7KWTbsH7nIPQi4lYwE8UK2b+yLJQntVrUdPm8slhfb1hc7+iybhinrJ5kKG1PfQU6uScLfb7RtGsx6OA==,iv:AzCw/IAC8ZU3FDjXEGg4sswo9rNczr7eNTJeYiO1vCs=,tag:8Zw7dLluDoQBgG2FBdysTQ==,type:str]
+    - ENC[AES256_GCM,data:4L0Bo0bdgR2W3YhQ5/8THyIBjlc2iKBm/zLVVJvzdAxk+Bn1TdviZ7vDAezeYgaEnnKfZy2tOEINDn62NkgSDLFmwKC71wMUsDs+9boK+dFGpth7qul6zXimZUPhC/jdsWc=,iv:81TquRq+7NQKfg7I0hIJy2iT2ujy7QpPEbue7u7o6AQ=,tag:WI6uTEHaIPqgj6Z0YcaS9A==,type:str]
 hostname: ENC[AES256_GCM,data:9K+Vcymkqw==,iv:G49pMkc4qBpQuy3gkY5MgTGk6FxQwl+SV7oiP2FIYrc=,tag:fvcbsPft76lpO2inLKVVJA==,type:str]
 keymap: ENC[AES256_GCM,data:a40=,iv:8v/EVrFT0guinmeaqy9bKUsedH5rTBfVwHS3T4M8bZw=,tag:Jt8JBc8FT45tSPsuHmPv4w==,type:str]
 timezone: ENC[AES256_GCM,data:73XDsGPanGtzdwTzqOPJPQ==,iv:HcbHzldQpPtsdBriLESpSMX5Yj5EhGNPU/xcAkF0IfI=,tag:UfyAiII8TB6kAMZIx52Otg==,type:str]
@@ -392,8 +409,8 @@ sops:
             hdfaqmXtZqluytwiAEOEN0JTZH1HCaPAknNmeKBYVgxWJm2WNz2qEw==
             -----END AGE ENCRYPTED FILE-----
           recipient: age1v492u0esm92zy34e33xd9m7z4jt3v03j233ar75k5m7s0rlxes0sxadr2t
-    lastmodified: "2026-06-12T21:44:26Z"
-    mac: ENC[AES256_GCM,data:+bNdAs7+h6CTSBL0wuLk2/N9e7nMSJpBBiec8cYZyCc9HE6L3n71xr3o3eXu3EvEo3uqt5XMZCiozUXyqjzQBKIPiTHiiKA5j6OipxEpHPBOvqpJCRraOC0Td2eWllgSUzNueIRM21/IM21SmYZfXF23rwhQHwZ4kKMxHHt5eRw=,iv:95YCywdvL0teflE72w7ajCAEaZrc1QFhrGsYdfmQ/eo=,tag:u4pGBwSoxJ73C/1LSWU6tw==,type:str]
+    lastmodified: "2026-06-14T17:23:58Z"
+    mac: ENC[AES256_GCM,data:otvwPexDs2PZwaI9v63fV0SpSX0/IKBBCGiizs9rbzKR+Dm9yuarUQPZFY6d1oogmXvag74FN+HyJ4QbK4v5LZXBz+/8brtrARtt30qDv0NlQV8DAJHgNmz6+F+BVuEVjnUTS8Kg7QmyuKNBPYkM9cPVNJly+RUr/bZdc2LtJV8=,iv:vMUISgPJ5MpKQWVwWYOK9t0bxNvdW2Cp2Q9x0G4/qJw=,tag:7g2YOERvh5Ns4gAuFy7VJg==,type:str]
     unencrypted_suffix: _unencrypted
     version: 3.13.1
 

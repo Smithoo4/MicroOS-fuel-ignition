@@ -12,10 +12,13 @@ This project automates the creation of a configuration ISO that performs the fol
 - Creates the /home subvolume needed for the non-root user.
 - Sets the hostname, keymap, and timezone.
 - Configures sudo to use the wheel group and user passwords.
-- Installs bash-completion, nano, git-core, firewalld, and patterns-microos-cockpit.
+- Installs bash-completion, nano, git-core, firewalld, age, and sops.
+- Installs and enables patterns-microos-cockpit.
+- Installs and enables prometheus node_exporter for OS metrics.
 - Opens firewall ports for SSH, Cockpit, HTTP, and HTTPS.
 - Configures git for the non-root user (.gitconfig).
 - Generates an SSH key for the non-root user.
+- Generates an age key for the non-root user (used by SOPS for decrypting secrets).
 - Enables linger for rootless Podman and the podman-auto-update.timer.
 - Sets unprivileged ports to start at 80 (needed for HTTP and HTTPS).
 
