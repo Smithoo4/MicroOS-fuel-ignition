@@ -12,10 +12,12 @@ This project automates the creation of a configuration ISO that performs the fol
 - Creates the /home subvolume needed for the non-root user.
 - Sets the hostname, keymap, and timezone.
 - Configures sudo to use the wheel group and user passwords.
-- Installs bash-completion, nano, git-core, firewalld, age, and sops.
+- Installs bash-completion, nano, git-core, firewalld, age, sops and yq.
+- Enables nano syntax highlighting system-wide.
 - Installs and enables patterns-microos-cockpit.
 - Installs and enables prometheus node_exporter for OS metrics.
 - Opens firewall ports for SSH, Cockpit, HTTP, and HTTPS.
+- Sets the default editor to nano for the non-root user (`EDITOR`/`VISUAL`).
 - Configures git for the non-root user (.gitconfig).
 - Generates an SSH key for the non-root user.
 - Generates an age key for the non-root user (used by SOPS for decrypting secrets).

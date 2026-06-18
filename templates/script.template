@@ -11,7 +11,10 @@ systemd-firstboot --force --keymap={{ keymap }}
 systemd-firstboot --force --timezone={{ timezone }}
 
 # Base Software Setup
-zypper --non-interactive install bash-completion nano git-core firewalld age sops
+zypper --non-interactive install bash-completion nano git-core firewalld age sops yq
+
+# Nano: enable bundled syntax highlighting system-wide
+sed -i 's|^# *include /usr/share/nano/\*\.nanorc|include /usr/share/nano/*.nanorc|' /etc/nanorc
 
 # Cockpit Setup
 zypper --non-interactive install patterns-microos-cockpit cockpit-selinux
@@ -40,8 +43,30 @@ chmod 640 /etc/firewalld/zones/public.xml
 
 systemctl enable firewalld
 
-#Ensure /home subvolume is mounted for persistence
+# Ensure /home subvolume is mounted for persistence
 mount /home || true
+
+
+# Set .bashrc for {{ user_name }}
+cat <<'EOF' >> /home/{{ user_name }}/.bashrc
+
+# Default editor
+export EDITOR=nano
+export VISUAL=nano
+
+# Full repo dump (respects .gitignore, excludes LICENSE and repo_dump.txt)
+repodump() {
+    git ls-files \
+        | grep -vE '^(LICENSE|repo_dump\.txt)$' \
+        | sort \
+        | while read -r f; do
+            echo "===== $f ====="
+            cat "$f"
+            echo ""
+        done > repo_dump.txt \
+        && echo "✅ repo_dump.txt created"
+}
+EOF
 
 # Git configuration for {{ user_name }} user
 cat <<EOF >  /home/{{ user_name }}/.gitconfig
