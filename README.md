@@ -12,7 +12,7 @@ This project automates the creation of a configuration ISO that performs the fol
 - Creates the /home subvolume needed for the non-root user.
 - Sets the hostname, keymap, and timezone.
 - Configures sudo to use the wheel group and user passwords.
-- Installs bash-completion, nano, git-core, firewalld, age, sops and yq.
+- Installs bash-completion, nano, git-core, nftables, age, sops and yq.
 - Enables nano syntax highlighting system-wide.
 - Installs and enables patterns-microos-cockpit.
 - Installs and enables prometheus node_exporter for OS metrics.
@@ -116,12 +116,6 @@ Implementing this change provided great insight into how Ignition handles system
 %wheel ALL=(ALL) ALL
 Defaults !targetpw
 ```
-
-### Firewall-cmd Limitations
-
-An issue occurs where `firewall-cmd` commands within the Combustion script fail. This is likely due to the D-Bus service or the `firewalld` daemon not being fully operational during the Combustion execution phase.
-
-To work around this limitation, the script manually writes the `public.xml` zone file to `/etc/firewalld/zones/public.xml` instead of using the CLI. This ensures the required ports are open immediately upon the first boot without relying on a live daemon during the setup process.
 
 ### Mounting the Home Directory in Combustion
 

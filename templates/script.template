@@ -11,7 +11,7 @@ systemd-firstboot --force --keymap={{ keymap }}
 systemd-firstboot --force --timezone={{ timezone }}
 
 # Base Software Setup
-zypper --non-interactive install bash-completion nano git-core firewalld age sops yq
+zypper --non-interactive install bash-completion nano git-core nftables age sops yq
 
 # Nano: enable bundled syntax highlighting system-wide
 sed -i 's|^# *include /usr/share/nano/\*\.nanorc|include /usr/share/nano/*.nanorc|' /etc/nanorc
@@ -25,23 +25,52 @@ zypper --non-interactive install golang-github-prometheus-node_exporter
 systemctl enable prometheus-node_exporter
 
 # Firewall Setup
-cat <<EOF > /etc/firewalld/zones/public.xml
-<?xml version="1.0" encoding="utf-8"?>
-<zone>
-  <short>Public</short>
-  <description>For use in public areas.</description>
-  <service name="ssh"/>
-  <service name="cockpit"/>
-  <service name="dhcpv6-client"/>
-  <service name="http"/>
-  <service name="https"/>
-  <service name="http3"/>
-</zone>
-EOF
-chown root:root /etc/firewalld/zones/public.xml
-chmod 640 /etc/firewalld/zones/public.xml
+mkdir -p /etc/nftables/rules
+cat <<'EOF' > /etc/nftables/rules/main.nft
+#!/usr/sbin/nft -f
+flush ruleset
 
-systemctl enable firewalld
+table inet filter {
+    chain input {
+        type filter hook input priority 0; policy drop;
+
+        # Loopback
+        iif lo accept
+
+        # Established / related; drop invalid
+        ct state established,related accept
+        ct state invalid drop
+
+        # ICMP (ping) and ICMPv6 (incl. neighbor discovery)
+        ip protocol icmp accept
+        ip6 nexthdr icmpv6 accept
+
+        # SSH
+        tcp dport 22 accept
+
+        # Cockpit
+        tcp dport 9090 accept
+
+        # HTTP / HTTPS
+        tcp dport { 80, 443 } accept
+
+        # HTTP/3 (QUIC)
+        udp dport 443 accept
+    }
+
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+    }
+
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}
+EOF
+chown root:root /etc/nftables/rules/main.nft
+chmod 600 /etc/nftables/rules/main.nft
+
+systemctl enable nftables
 
 # Ensure /home subvolume is mounted for persistence
 mount /home || true
