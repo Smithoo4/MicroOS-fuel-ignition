@@ -11,7 +11,7 @@ systemd-firstboot --force --keymap={{ keymap }}
 systemd-firstboot --force --timezone={{ timezone }}
 
 # Base Software Setup
-zypper --non-interactive install bash-completion nano git-core nftables age sops yq
+zypper --non-interactive install bash-completion nano micro-editor git-core nftables age sops yq
 
 # Nano: enable bundled syntax highlighting system-wide
 sed -i 's|^# *include /usr/share/nano/\*\.nanorc|include /usr/share/nano/*.nanorc|' /etc/nanorc
@@ -96,7 +96,7 @@ repodump() {
             cat "$f"
             echo ""
         done > repo_dump.txt \
-        && echo "✅ repo_dump.txt created"
+        && echo "[ok] repo_dump.txt created"
 }
 EOF
 

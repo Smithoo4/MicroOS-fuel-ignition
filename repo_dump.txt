@@ -106,7 +106,7 @@ This project automates the creation of a configuration ISO that performs the fol
 - Creates the /home subvolume needed for the non-root user.
 - Sets the hostname, keymap, and timezone.
 - Configures sudo to use the wheel group and user passwords.
-- Installs bash-completion, nano, git-core, firewalld, age, sops and yq.
+- Installs bash-completion, nano,micro-editor, git-core, nftables, age, sops and yq.
 - Enables nano syntax highlighting system-wide.
 - Installs and enables patterns-microos-cockpit.
 - Installs and enables prometheus node_exporter for OS metrics.
@@ -210,12 +210,6 @@ Implementing this change provided great insight into how Ignition handles system
 %wheel ALL=(ALL) ALL
 Defaults !targetpw
 ```
-
-### Firewall-cmd Limitations
-
-An issue occurs where `firewall-cmd` commands within the Combustion script fail. This is likely due to the D-Bus service or the `firewalld` daemon not being fully operational during the Combustion execution phase.
-
-To work around this limitation, the script manually writes the `public.xml` zone file to `/etc/firewalld/zones/public.xml` instead of using the CLI. This ensures the required ports are open immediately upon the first boot without relying on a live daemon during the setup process.
 
 ### Mounting the Home Directory in Combustion
 
@@ -321,7 +315,7 @@ systemd-firstboot --force --keymap={{ keymap }}
 systemd-firstboot --force --timezone={{ timezone }}
 
 # Base Software Setup
-zypper --non-interactive install bash-completion nano git-core firewalld age sops yq
+zypper --non-interactive install bash-completion nano micro-editor git-core nftables age sops yq
 
 # Nano: enable bundled syntax highlighting system-wide
 sed -i 's|^# *include /usr/share/nano/\*\.nanorc|include /usr/share/nano/*.nanorc|' /etc/nanorc
@@ -335,23 +329,55 @@ zypper --non-interactive install golang-github-prometheus-node_exporter
 systemctl enable prometheus-node_exporter
 
 # Firewall Setup
-cat <<EOF > /etc/firewalld/zones/public.xml
-<?xml version="1.0" encoding="utf-8"?>
-<zone>
-  <short>Public</short>
-  <description>For use in public areas.</description>
-  <service name="ssh"/>
-  <service name="cockpit"/>
-  <service name="dhcpv6-client"/>
-  <service name="http"/>
-  <service name="https"/>
-  <service name="http3"/>
-</zone>
-EOF
-chown root:root /etc/firewalld/zones/public.xml
-chmod 640 /etc/firewalld/zones/public.xml
+mkdir -p /etc/nftables/rules
+cat <<'EOF' > /etc/nftables/rules/main.nft
+#!/usr/sbin/nft -f
+flush ruleset
 
-systemctl enable firewalld
+table inet filter {
+    chain input {
+        type filter hook input priority 0; policy drop;
+
+        # Loopback
+        iif lo accept
+
+        # Established / related; drop invalid
+        ct state established,related accept
+        ct state invalid drop
+
+        # ICMP (ping) and ICMPv6 (incl. neighbor discovery)
+        ip protocol icmp accept
+        ip6 nexthdr icmpv6 accept
+
+        # DHCPv6 client
+        udp dport 546 accept
+
+        # SSH
+        tcp dport 22 accept
+
+        # Cockpit
+        tcp dport 9090 accept
+
+        # HTTP / HTTPS
+        tcp dport { 80, 443 } accept
+
+        # HTTP/3 (QUIC)
+        udp dport 443 accept
+    }
+
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+    }
+
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}
+EOF
+chown root:root /etc/nftables/rules/main.nft
+chmod 600 /etc/nftables/rules/main.nft
+
+systemctl enable nftables
 
 # Ensure /home subvolume is mounted for persistence
 mount /home || true
@@ -374,7 +400,7 @@ repodump() {
             cat "$f"
             echo ""
         done > repo_dump.txt \
-        && echo "✅ repo_dump.txt created"
+        && echo "[ok] repo_dump.txt created"
 }
 EOF
 
