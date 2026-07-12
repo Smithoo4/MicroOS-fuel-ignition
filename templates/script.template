@@ -5,10 +5,10 @@
 exec > >(exec tee -a /dev/tty0) 2>&1
 
 # Keyboard
-systemd-firstboot --force --keymap={{ keymap }}
+systemd-firstboot --force --keymap={{ .keymap }}
 
 # Timezone
-systemd-firstboot --force --timezone={{ timezone }}
+systemd-firstboot --force --timezone={{ .timezone }}
 
 # Base Software Setup
 zypper --non-interactive install bash-completion nano micro-editor git-core nftables age sops yq
@@ -79,8 +79,8 @@ systemctl enable nftables
 mount /home || true
 
 
-# Set .bashrc for {{ user_name }}
-cat <<'EOF' >> /home/{{ user_name }}/.bashrc
+# Set .bashrc for {{ .user_name }}
+cat <<'EOF' >> /home/{{ .user_name }}/.bashrc
 
 # Default editor
 export EDITOR=nano
@@ -100,34 +100,34 @@ repodump() {
 }
 EOF
 
-# Git configuration for {{ user_name }} user
-cat <<EOF >  /home/{{ user_name }}/.gitconfig
-{{ git_config_raw.strip() }}
+# Git configuration for {{ .user_name }} user
+cat <<EOF >  /home/{{ .user_name }}/.gitconfig
+{{ trim .git_config_raw }}
 EOF
 
-# Generate SSH key for {{ user_name }} user
-if [ ! -f /home/{{ user_name }}/.ssh/id_ed25519 ]; then
-    ssh-keygen -t ed25519 -C "{{ user_name }}@{{ hostname }}" -f /home/{{ user_name }}/.ssh/id_ed25519 -N ""
+# Generate SSH key for {{ .user_name }} user
+if [ ! -f /home/{{ .user_name }}/.ssh/id_ed25519 ]; then
+    ssh-keygen -t ed25519 -C "{{ .user_name }}@{{ .hostname }}" -f /home/{{ .user_name }}/.ssh/id_ed25519 -N ""
 fi
 
-# Generate age key for {{ user_name }} user (used by SOPS)
-AGE_KEY_DIR="/home/{{ user_name }}/.config/sops/age"
+# Generate age key for {{ .user_name }} user (used by SOPS)
+AGE_KEY_DIR="/home/{{ .user_name }}/.config/sops/age"
 if [ ! -f "${AGE_KEY_DIR}/keys.txt" ]; then
     mkdir -p "${AGE_KEY_DIR}"
     age-keygen -o "${AGE_KEY_DIR}/keys.txt" 2>/dev/null
 fi
 
 # Set up Rootless Podman
-su - {{ user_name }} -c "systemctl --user enable podman-auto-update.timer"
-su - {{ user_name }} -c "systemctl --user enable podman.socket"
+su - {{ .user_name }} -c "systemctl --user enable podman-auto-update.timer"
+su - {{ .user_name }} -c "systemctl --user enable podman.socket"
 echo "net.ipv4.ip_unprivileged_port_start=80" > /etc/sysctl.d/90-rootless-ports.conf
 
 # Set ownership and strict permissions
-chown -R {{ user_name }}:{{ user_name }} /home/{{ user_name }}
-chmod 700 /home/{{ user_name }}/.ssh
-chmod 600 /home/{{ user_name }}/.ssh/id_ed25519
-chmod 644 /home/{{ user_name }}/.ssh/id_ed25519.pub
-chmod 600 /home/{{ user_name }}/.config/sops/age/keys.txt
+chown -R {{ .user_name }}:{{ .user_name }} /home/{{ .user_name }}
+chmod 700 /home/{{ .user_name }}/.ssh
+chmod 600 /home/{{ .user_name }}/.ssh/id_ed25519
+chmod 644 /home/{{ .user_name }}/.ssh/id_ed25519.pub
+chmod 600 /home/{{ .user_name }}/.config/sops/age/keys.txt
 
 # Leave a marker
 echo "Configured with combustion" > /etc/issue.d/85-combustion.issue

@@ -1,6 +1,7 @@
+
 # Build artifacts
 output/
 ignition.iso
 
-# Python cache
-__pycache__/
+# Go binary
+/microos-fuel-ignition

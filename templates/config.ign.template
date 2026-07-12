@@ -9,12 +9,12 @@
         "locked": true
       },
       {
-        "name": "{{ user_name }}",
-        "passwordHash": "{{ user_passwordHash }}",
+        "name": "{{ .user_name }}",
+        "passwordHash": "{{ .user_passwordHash }}",
         "groups": [
           "wheel"
         ],
-        "sshAuthorizedKeys": {{ user_ssh_authorized_keys | tojson }}
+        "sshAuthorizedKeys": {{ toJson .user_ssh_authorized_keys }}
       }
     ],
     "groups": [
@@ -41,7 +41,7 @@
         "mode": 420,
         "overwrite": true,
         "contents": {
-          "source": "data:text/plain;charset=utf-8,{{ hostname }}"
+          "source": "data:text/plain;charset=utf-8,{{ .hostname }}"
         }
       },
       {
@@ -60,7 +60,7 @@
         }
       },
       {
-        "path": "/var/lib/systemd/linger/{{ user_name }}",
+        "path": "/var/lib/systemd/linger/{{ .user_name }}",
         "mode": 420,
         "contents": {
           "source": "data:text/plain;base64,"
