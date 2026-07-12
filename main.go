@@ -34,7 +34,6 @@ var funcMap = template.FuncMap{
 		}
 		return string(b), nil
 	},
-	// trim mirrors Python's str.strip() used as `git_config_raw.strip()`.
 	"trim": func(v interface{}) string {
 		return strings.TrimSpace(fmt.Sprintf("%v", v))
 	},
