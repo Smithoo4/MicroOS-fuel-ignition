@@ -60,6 +60,14 @@
         }
       },
       {
+        "path": "/etc/ssh/sshd_config.d/10-hardening.conf",
+        "mode": 420,
+        "overwrite": true,
+        "contents": {
+          "source": "data:,PasswordAuthentication%20no%0AKbdInteractiveAuthentication%20no%0APermitRootLogin%20no%0AAuthenticationMethods%20publickey%0AMaxAuthTries%203%0ALoginGraceTime%2030%0ALogLevel%20VERBOSE%0AAllowUsers%20{{ .user_name }}%0AX11Forwarding%20no%0AAllowAgentForwarding%20no%0A"
+        }
+      },
+      {
         "path": "/var/lib/systemd/linger/{{ .user_name }}",
         "mode": 420,
         "contents": {

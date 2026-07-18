@@ -24,6 +24,30 @@ systemctl enable cockpit.socket
 zypper --non-interactive install golang-github-prometheus-node_exporter
 systemctl enable prometheus-node_exporter
 
+# Logging - rsyslog (CrowdSec SSH source)
+zypper --non-interactive install rsyslog
+mkdir -p /var/log/crowdsec
+cat <<'EOF' > /etc/rsyslog.d/10-crowdsec-ssh.conf
+# Tee auth/authpriv (sshd, sudo, login) to a dedicated file for CrowdSec
+$FileCreateMode 0644
+authpriv.*   /var/log/crowdsec/auth.log
+$FileCreateMode 0600
+EOF
+systemctl enable rsyslog
+cat <<'EOF' > /etc/logrotate.d/crowdsec-ssh
+/var/log/crowdsec/auth.log {
+    daily
+    rotate 7
+    compress
+    missingok
+    notifempty
+    create 0644 root root
+    postrotate
+        systemctl kill -s HUP rsyslog.service 2>/dev/null || true
+    endscript
+}
+EOF
+
 # Firewall Setup
 mkdir -p /etc/nftables/rules
 cat <<'EOF' > /etc/nftables/rules/main.nft

@@ -12,10 +12,12 @@ This project automates the creation of a configuration ISO that performs the fol
 - Creates the /home subvolume needed for the non-root user.
 - Sets the hostname, keymap, and timezone.
 - Configures sudo to use the wheel group and user passwords.
+- Hardens SSH: key-only authentication, no root login, restricted auth attempts, and reduced forwarding surface.
 - Installs bash-completion, nano, git-core, nftables, age, sops and yq.
 - Enables nano syntax highlighting system-wide.
 - Installs and enables patterns-microos-cockpit.
 - Installs and enables prometheus node_exporter for OS metrics.
+- Installs rsyslog and tees `authpriv` to a world-readable `/var/log/crowdsec/auth.log` for CrowdSec to read.
 - Opens firewall ports for SSH, Cockpit, HTTP, and HTTPS via nftables.
 - Sets the default editor to nano for the non-root user (`EDITOR`/`VISUAL`).
 - Configures git for the non-root user (.gitconfig).
