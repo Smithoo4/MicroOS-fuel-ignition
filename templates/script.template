@@ -28,9 +28,12 @@ systemctl enable prometheus-node_exporter
 zypper --non-interactive install rsyslog
 mkdir -p /var/log/crowdsec
 cat <<'EOF' > /etc/rsyslog.d/10-crowdsec-ssh.conf
+# Disable message collapsing so CrowdSec sees every brute-force attempt
+$RepeatedMsgReduction off
+
 # Tee auth/authpriv (sshd, sudo, login) to a dedicated file for CrowdSec
 $FileCreateMode 0644
-authpriv.*   /var/log/crowdsec/auth.log
+auth,authpriv.*   /var/log/crowdsec/auth.log
 $FileCreateMode 0600
 EOF
 systemctl enable rsyslog
