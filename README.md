@@ -13,7 +13,7 @@ This project automates the creation of a configuration ISO that performs the fol
 - Sets the hostname, keymap, and timezone.
 - Configures sudo to use the wheel group and user passwords.
 - Hardens SSH: key-only authentication, no root login, restricted auth attempts, and reduced forwarding surface.
-- Installs bash-completion, nano, git-core, nftables, age, sops and yq.
+- Installs bash-completion, nano, micro-editor, git-core, nftables, age, sops and yq.
 - Enables nano syntax highlighting system-wide.
 - Installs and enables patterns-microos-cockpit.
 - Installs and enables prometheus node_exporter for OS metrics.
