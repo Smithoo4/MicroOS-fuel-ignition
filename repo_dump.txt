@@ -179,10 +179,12 @@ This project automates the creation of a configuration ISO that performs the fol
 - Creates the /home subvolume needed for the non-root user.
 - Sets the hostname, keymap, and timezone.
 - Configures sudo to use the wheel group and user passwords.
+- Hardens SSH: key-only authentication, no root login, restricted auth attempts, and reduced forwarding surface.
 - Installs bash-completion, nano, git-core, nftables, age, sops and yq.
 - Enables nano syntax highlighting system-wide.
 - Installs and enables patterns-microos-cockpit.
 - Installs and enables prometheus node_exporter for OS metrics.
+- Installs rsyslog and tees `authpriv` to a world-readable `/var/log/crowdsec/auth.log` for CrowdSec to read.
 - Opens firewall ports for SSH, Cockpit, HTTP, and HTTPS via nftables.
 - Sets the default editor to nano for the non-root user (`EDITOR`/`VISUAL`).
 - Configures git for the non-root user (.gitconfig).
@@ -381,6 +383,14 @@ creation_rules:
         }
       },
       {
+        "path": "/etc/ssh/sshd_config.d/10-hardening.conf",
+        "mode": 420,
+        "overwrite": true,
+        "contents": {
+          "source": "data:,PasswordAuthentication%20no%0AKbdInteractiveAuthentication%20no%0APermitRootLogin%20no%0AAuthenticationMethods%20publickey%0AMaxAuthTries%203%0ALoginGraceTime%2030%0ALogLevel%20VERBOSE%0AAllowUsers%20{{ .user_name }}%0AX11Forwarding%20no%0AAllowAgentForwarding%20no%0A"
+        }
+      },
+      {
         "path": "/var/lib/systemd/linger/{{ .user_name }}",
         "mode": 420,
         "contents": {
@@ -417,6 +427,17 @@ systemctl enable cockpit.socket
 # Monitoring - node_exporter
 zypper --non-interactive install golang-github-prometheus-node_exporter
 systemctl enable prometheus-node_exporter
+
+# Logging - rsyslog (forwards SSH auth events to CrowdSec syslog listener)
+zypper --non-interactive install rsyslog
+cat <<'EOF' > /etc/rsyslog.d/10-crowdsec-ssh.conf
+# Disable message collapsing so CrowdSec sees every brute-force attempt
+$RepeatedMsgReduction off
+
+# Forward auth/authpriv to the CrowdSec syslog listener (host loopback, UDP)
+auth,authpriv.* action(type="omfwd" target="127.0.0.1" port="514" protocol="udp")
+EOF
+systemctl enable rsyslog
 
 # Firewall Setup
 mkdir -p /etc/nftables/rules
