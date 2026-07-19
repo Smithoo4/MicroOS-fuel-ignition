@@ -17,7 +17,7 @@ This project automates the creation of a configuration ISO that performs the fol
 - Enables nano syntax highlighting system-wide.
 - Installs and enables patterns-microos-cockpit.
 - Installs and enables prometheus node_exporter for OS metrics.
-- Installs rsyslog and tees `authpriv` to a world-readable `/var/log/crowdsec/auth.log` for CrowdSec to read.
+- Installs rsyslog and forwards `auth,authpriv` (SSH auth events) over UDP to the CrowdSec syslog listener on `127.0.0.1:514`.
 - Opens firewall ports for SSH, Cockpit, HTTP, and HTTPS via nftables.
 - Sets the default editor to nano for the non-root user (`EDITOR`/`VISUAL`).
 - Configures git for the non-root user (.gitconfig).
